@@ -8,12 +8,12 @@ int server_start(void)
 
     struct addrinfo hints;
     memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
+    hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
 
     struct addrinfo *bind_address;
-    getaddrinfo("45.230.216.250", "8080", &hints, &bind_address);
+    getaddrinfo(0, "80", &hints, &bind_address);
 
     printf("Creating socket...\n");
     SOCKET socket_listen = socket(bind_address->ai_family,
@@ -81,10 +81,18 @@ int server_start(void)
                     /* Here start chatting. */
                     for (SOCKET j = 1; j <= max_socket; ++j)
                     {
-                        if (j == socket_listen || j == i)
-                            continue;
-                        else
-                            server_send(j, read, sizeof(read), 0);
+                        if (FD_ISSET(j, &master))
+                        {
+                            if (j == socket_listen || j == i)
+                                continue;
+                            else
+                            {
+                                socket_send(j, read, sizeof(read), 0);
+                                printf("Received %d bytes.\n"
+                                       "Message: %s\n",
+                                       bytes_received, read);
+                            }
+                        }
                     }
                 }
             }
@@ -94,13 +102,8 @@ int server_start(void)
     return 0;
 }
 
-void server_send(const int _socket, const char *buffer, const size_t len, int flag)
+int main(int argc, char const *argv[])
 {
-    int begin = 0;
-    while (begin < len)
-    {
-        int sent = send(_socket, buffer + begin, len - begin, flag);
-        server_check_send(begin);
-        begin += sent;
-    }
+    server_start();
+    return 0;
 }

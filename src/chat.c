@@ -4,7 +4,7 @@
 
 void chat_start(void)
 {
-    SET_RED_FOREGROUND;
+    SET_RED_FG;
     char buffer[100];
     printf(
         "\t\t\aWelcome to InmortalChat.\n"
@@ -18,25 +18,25 @@ void chat_start(void)
     client.name = buffer;
 
     utils_clear_terminal();
-    SET_YELLOW_FOREGROUND;
+    SET_YELLOW_FG;
     printf("Opening client...\n");
     sleep(1);
 
     utils_clear_terminal();
-    SET_RED_FOREGROUND;
+    SET_RED_FG;
     printf("\aWelcome %s! :D\n", buffer);
-    printf("Pls, paste here the link that I've sent you: ");
+    // printf("Pls, paste here the link that I've sent you: ");
 
-    memset(buffer, 0, sizeof(buffer));
-    fgets(buffer, sizeof(buffer), stdin);
-    buffer[strcspn(buffer, "\n")] = 0;
+    // memset(buffer, 0, sizeof(buffer));
+    // fgets(buffer, sizeof(buffer), stdin);
+    // buffer[strcspn(buffer, "\n")] = 0;
 
-    SET_YELLOW_FOREGROUND;
-    printf("Validating link...\n");
-    //chat_check_link(buffer, sizeof(buffer));
+    // SET_YELLOW_FG;
+    // printf("Validating link...\n");
+    // chat_check_link(buffer, sizeof(buffer));
     sleep(1);
 
-    client_init(&client, buffer, "80");
+    client_init(&client, "127.0.0.1", "8080");
     client_start(&client);
 }
 

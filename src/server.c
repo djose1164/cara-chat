@@ -2,7 +2,7 @@
 
 int server_start(void)
 {
-    SET_YELLOW_FOREGROUND;
+    SET_YELLOW_FG;
     printf("Starting server...\n"
            "Configuring socket...\n");
 
@@ -13,7 +13,7 @@ int server_start(void)
     hints.ai_flags = AI_PASSIVE;
 
     struct addrinfo *bind_address;
-    getaddrinfo(0, "80", &hints, &bind_address);
+    getaddrinfo(0, "8080", &hints, &bind_address);
 
     printf("Creating socket...\n");
     SOCKET socket_listen = socket(bind_address->ai_family,
@@ -27,7 +27,7 @@ int server_start(void)
     freeaddrinfo(bind_address);
 
     printf("Listening...\n");
-    server_listen(socket_listen, 20);
+    server_listen(socket_listen, 10);
 
     fd_set master;
     FD_ZERO(&master);
@@ -39,67 +39,81 @@ int server_start(void)
     while (true)
     {
         // Save a copy of master.
-        fd_set reads;
-        reads = master;
+        fd_set reads = master;
         server_check_select(select(max_socket + 1, &reads, 0, 0, 0));
 
-        for (SOCKET i = 1; i <= max_socket; i++)
+        for (SOCKET i = 1; i <= max_socket + 1; i++)
         {
             if (FD_ISSET(i, &reads))
             {
                 if (i == socket_listen)
-                {
-                    struct sockaddr_storage client_address;
-                    socklen_t client_len = sizeof(client_address);
-                    SOCKET socket_client;
-                    socket_client = accept(socket_listen, (struct sockaddr *)&client_address, &client_len);
-                    server_check_socket(socket_client);
-
-                    /*
-                     * Add the new socket to master. And if it's necessary 
-                     * update max sockets.
-                     */
-                    FD_SET(socket_client, &master);
-                    if (socket_client > max_socket)
-                        max_socket = socket_client;
-
                     /* Print info of the new connection. */
-                    char host_buffer[1024], serv_buffer[1024];
-                    struct sockaddr *address_info = (struct sockaddr *)&client_address;
-                    getnameinfo(address_info, client_len, host_buffer,
-                                sizeof(host_buffer), serv_buffer,
-                                sizeof(serv_buffer), NI_NUMERICHOST);
-                    printf("New connection from: Host:%s Serv:%s\n", host_buffer,
-                           serv_buffer);
-                }
+                    server_new_connection(socket_listen, &master, &max_socket);
                 else
-                {
-                    char read[1024];
-                    int bytes_received = recv(i, read, sizeof(read), 0);
-                    server_check_recv(bytes_received);
-
-                    /* Here start chatting. */
-                    for (SOCKET j = 1; j <= max_socket; ++j)
-                    {
-                        if (FD_ISSET(j, &master))
-                        {
-                            if (j == socket_listen || j == i)
-                                continue;
-                            else
-                            {
-                                socket_send(j, read, sizeof(read), 0);
-                                printf("Received %d bytes.\n"
-                                       "Message: %s\n",
-                                       bytes_received, read);
-                            }
-                        }
-                    }
-                }
+                    server_handle_client_msg(max_socket, &master, socket_listen, i);
             }
         }
     }
 
     return 0;
+}
+
+void server_new_connection(SOCKET socket_listen, fd_set *master, SOCKET *max_socket)
+{
+    struct sockaddr_storage client_address;
+    socklen_t client_len = sizeof(client_address);
+
+    SOCKET socket_client = server_accept(socket_listen,
+                                         (struct sockaddr *)&client_address,
+                                         &client_len);
+
+    /*
+     * Add the new socket to master. And if it's necessary 
+     * update max sockets.
+     */
+    FD_SET(socket_client, master);
+    if (socket_client > *max_socket)
+        *max_socket = socket_client;
+
+    char host_buffer[1024];
+    struct sockaddr *address_info = (struct sockaddr *)&client_address;
+
+    getnameinfo(address_info, client_len, host_buffer,
+                sizeof(host_buffer), 0, 0, NI_NUMERICHOST);
+
+    printf("New connection from: Host: %s\n", host_buffer);
+}
+
+SOCKET server_accept(SOCKET socket_listen, struct sockaddr *client_address, socklen_t *client_len)
+{
+    SOCKET socket_client;
+    socket_client = accept(socket_listen, client_address, client_len);
+    server_check_socket(socket_client);
+
+    return socket_client;
+}
+
+void server_handle_client_msg(SOCKET max_socket, fd_set *master,
+                              SOCKET socket_listen, SOCKET current)
+{
+    struct message read;
+    int bytes_received = recv(current, &read, sizeof(read), 0);
+    server_check_recv(bytes_received);
+
+    if (read.type == CONNECT)
+        printf("New user: " GREEN_FG "%s\n" YELLOW_FG, read.username);
+
+    /* Here start chatting. */
+    for (SOCKET j = 1; j <= max_socket; ++j)
+    {
+        if (FD_ISSET(j, master))
+        {
+            if (j == socket_listen || j == current)
+                continue;
+            else
+                socket_send(j, &read, sizeof(read), 0);
+        }
+    }
 }
 
 int main(int argc, char const *argv[])

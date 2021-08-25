@@ -22,4 +22,10 @@ void client_start(struct client *client);
 
 void client_end(SOCKET _socket);
 
+void client_recv_from_serv(struct client *client);
+
+void client_handle_input(struct client *client, fd_set *reads);
+
+void client_connected(SOCKET _socket, const char *username);
+
 #endif //CLIENT_H

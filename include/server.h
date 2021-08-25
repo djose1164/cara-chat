@@ -6,15 +6,15 @@
 
 int server_start(void);
 
-#define server_check_recv(received) \
-    do                              \
-    {                               \
-        if ((received) < 1)         \
-        {                           \
-            FD_CLR(i, &master);     \
-            CLOSE_SOCKET(i);        \
-            continue;               \
-        }                           \
+#define server_check_recv(received)     \
+    do                                  \
+    {                                   \
+        if ((received) < 1)             \
+        {                               \
+            FD_CLR(current, master);    \
+            CLOSE_SOCKET(current);      \
+            return;                     \
+        }                               \
     } while(0)                          
 
 static inline void server_check_socket(SOCKET _socket)
@@ -53,7 +53,12 @@ static inline void server_check_select(int status)
     }
 }
 
-void server_send(const int socket, const char *buffer, const size_t len, int flag);
+void server_new_connection(SOCKET socket_listen, fd_set *master, SOCKET *max_socket);
+
+SOCKET server_accept();
+
+void server_handle_client_msg(SOCKET max_socket, fd_set *master,
+                              SOCKET socket_listen, SOCKET current);
 
 static inline void win_init(void)
 {

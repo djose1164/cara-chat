@@ -58,7 +58,7 @@ static inline void socket_check_send(int status)
     }
 }
 
-static inline void socket_send(const int _socket, const char *buffer, const size_t len, int flag)
+static inline void socket_send(const int _socket, const void *buffer, const size_t len, int flag)
 {
     int begin = 0;
     while (begin < len)

@@ -6,6 +6,6 @@
 
 void chat_start(void);
 
-void chat_check_link(const char *link, size_t len);
+const char * chat_check_link(const char *link);
 
 #endif //CHAT_H

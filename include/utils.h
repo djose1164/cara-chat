@@ -22,9 +22,8 @@
         exit(EXIT_FAILURE);                                        \
     } while(0)                                                     \
 
-#ifdef __linux__
-#else
-#define sleep(time) Sleep((time)*1000))
+#ifndef __linux__
+#define sleep(time) Sleep((time)*1000)
 #endif // __linux__
 
 enum message_type
@@ -39,7 +38,7 @@ enum message_type
 struct message
 {
     enum message_type type;
-    char username[50];
+    char username[128];
     char data[1024];
 };
 

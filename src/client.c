@@ -1,8 +1,11 @@
 #include "client.h"
 
-void client_init(struct client *client, const char *name, const char *port)
+void client_init(struct client *client, const char *name)
 {
     SET_YELLOW_FG;
+
+    /* If windows is detected. */
+    client_setup_windows();
 
     printf("Configuring client...\n");
     struct addrinfo hints;
@@ -11,9 +14,10 @@ void client_init(struct client *client, const char *name, const char *port)
     struct addrinfo *peer_address;
 
     puts("---- Setting remote address...");
-    if (getaddrinfo(name, port ? port : "80", &hints, &peer_address))
+    if (getaddrinfo("0.tcp.ngrok.io", "14212", &hints, &peer_address))
         die("getaddrinfo() failed", GET_SOCKET_ERRNO());
     puts("---- Setting remote address... Done!");
+    puts("-- Freed unnecessary memory of: client->port.");
 
     printf("IP address is: ");
     char address_buff[1024];
@@ -42,10 +46,10 @@ void client_start(struct client *client)
                 client->peer_address->ai_addrlen) == -1)
         die("connect() failed", GET_SOCKET_ERRNO());
     freeaddrinfo(client->peer_address);
-    
+
     puts("\t\t\a-> Connected <-\n");
     client_connected(client->peer_socket, client->name);
-    
+
     SET_RED_FG;
     printf("To send a message press enter.\n"
            "-> ");
@@ -81,14 +85,17 @@ void client_recv_from_serv(struct client *client)
 {
     struct message read;
     memset(&read, 0, sizeof(read));
-
+#ifndef __linux__
+    int bytes_received = recv(client->peer_socket, (char *)&read, sizeof(read), 0);
+#else
     int bytes_received = recv(client->peer_socket, &read, sizeof(read), 0);
+#endif // __linux__
     if (bytes_received < 1)
     {
         puts("\a\rConnection closed by server.\n");
         client_end(client->peer_socket);
     }
-
+    
     switch (read.type)
     {
     case CONNECT:
@@ -98,7 +105,7 @@ void client_recv_from_serv(struct client *client)
     case DISCONNECT:
         printf(GREEN_FG "\r%s " RED_FG "has disconnected.\n", read.username);
         break;
-        
+
     case NORMAL:
         printf(GREEN_FG "\r\a%s" RED_FG ": %s\n", read.username, read.data);
         break;
@@ -150,8 +157,8 @@ void client_connected(SOCKET _socket, const char *username)
 void client_end(SOCKET _socket)
 {
     SET_YELLOW_FG;
-    puts("Closing program...\n"
-         "---- Closing socket...\n");
+    puts("---- Closing program...\n"
+         "-- Closing socket...\n");
     CLOSE_SOCKET(_socket);
 
 #ifdef __WIN32
@@ -159,4 +166,23 @@ void client_end(SOCKET _socket)
 #endif //__WIN32
     puts("\aBye!\n");
     exit(0);
+}
+
+/* Private functions. */
+
+static void client_setup_windows()
+{
+#ifdef __WIN32
+    puts("---- Windows detected.\n"
+         "-- Initialing...");
+         
+    WSADATA d;
+    if (WSAStartup(MAKEWORD(2, 2), &d))
+    {
+        ("Failed to initialize.\n");
+        -1;
+    }
+
+    puts("-- Initialing... Done!");
+#endif // __WIN32
 }

@@ -8,7 +8,7 @@ void chat_start(void)
     char buffer[100];
     char username[100];
     printf(
-        "\t\t\aWelcome to InmortalChat.\n"
+        "\t\t\aWelcome to CaraChat.\n"
         "\tCreated and maintained by -Jose S. Daniel (@djose1164)-.\n\n"
         "Enter your nickname (use _ insted of spaces): ");
     fgets(username, sizeof(username), stdin);
